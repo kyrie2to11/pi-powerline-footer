@@ -365,6 +365,87 @@ test("generateVibesBatch parses thinking suffix separately from model id", async
   }
 });
 
+test("auto model spec resolves to the active session model and tracks model_select updates", async () => {
+  const links = ensurePiModuleLinks();
+  const home = mkdtempSync(join(tmpdir(), "powerline-vibes-home-"));
+  const previousHome = process.env.HOME;
+  process.env.HOME = home;
+
+  try {
+    const { fauxAssistantMessage, fauxProvider } = await importFauxProviderTools();
+    const { generateVibesBatch, initVibeManager, setVibeActiveModel, setVibeModel } = await import("../working-vibes.ts");
+
+    const registration = fauxProvider({
+      provider: "session-provider",
+      models: [{ id: "session-model" }],
+    });
+    const model = registration.getModel("session-model");
+    assert.ok(model);
+
+    let requestedProvider: string | undefined;
+    registration.setResponses([
+      (_context, _options, _state, requestModel) => {
+        requestedProvider = requestModel.provider;
+        return fauxAssistantMessage("Following the active way...");
+      },
+    ]);
+
+    initVibeManager({
+      model,
+      sessionManager: { getSessionId: () => "auto-session" },
+      modelRegistry: {
+        find(provider: string, modelId: string) {
+          return provider === "session-provider" && modelId === "session-model" ? model : undefined;
+        },
+        async getApiKeyAndHeaders() {
+          return { ok: true, apiKey: "test-key", headers: {} };
+        },
+        getProvider(provider: string) {
+          return provider === "session-provider" ? registration.provider : undefined;
+        },
+        async getProviderAuth() {
+          return { auth: { apiKey: "test-key" } };
+        },
+      },
+    });
+
+    assert.equal(setVibeModel("auto"), true);
+
+    // Seeded from ctx.model at init
+    const seeded = await generateVibesBatch("auto-seed", 1);
+    assert.equal(seeded.success, true);
+    assert.equal(requestedProvider, "session-provider");
+
+    // A model_select push is honored without re-init
+    registration.setResponses([
+      (_context, _options, _state, requestModel) => {
+        requestedProvider = requestModel.provider;
+        return fauxAssistantMessage("Still following...");
+      },
+    ]);
+    setVibeActiveModel(model);
+    const updated = await generateVibesBatch("auto-update", 1);
+    assert.equal(updated.success, true);
+    assert.equal(requestedProvider, "session-provider");
+
+    // No active model -> falls back to the "Model not found" error path
+    setVibeActiveModel(undefined);
+    const none = await generateVibesBatch("auto-none", 1);
+    assert.ok(!none.success && /Model not found/.test(none.error));
+
+    // Restore the default spec so later tests are unaffected
+    assert.equal(setVibeModel("openai-codex/gpt-5.6-luna:low"), true);
+  } finally {
+    if (previousHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = previousHome;
+    }
+    rmSync(home, { recursive: true, force: true });
+    links.cleanup();
+  }
+});
+
 test("on-demand vibe generation includes a system prompt for providers that require instructions", async () => {
   const links = ensurePiModuleLinks();
   const home = mkdtempSync(join(tmpdir(), "powerline-vibes-home-"));

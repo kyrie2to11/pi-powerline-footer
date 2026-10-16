@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- **Working vibes can follow the active session model** — Set `workingVibeModel` to `"auto"` (or run `/vibe model auto`) and vibe generation uses the model the session is currently on, switching live with `/model`. Handy when the configured vibe model sits on a different account or plan than the one you actively use. Thanks to [@kyrie2to11](https://github.com/kyrie2to11) for #251.
+
 ### Fixed
 - **Working indicator stays in the editor border** — Pi renders an embedded working, compaction, summarization, or retry status into the editor's top border, and a custom editor only gets one by opting in. The Powerline editor now opts in and reuses that border instead of laying a plain rule over it, so the indicator no longer moves out of the input frame to the status row above the editor. Thanks to [@joelleibow](https://github.com/joelleibow) for #249.
 

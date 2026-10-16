@@ -105,13 +105,22 @@ interface VibeGenContext {
 
 let config: VibeConfig = loadConfig();
 let extensionCtx: ExtensionContext | null = null;
+// Active session model, pushed from model_select/session_start so "auto" resolves live.
+let activeModel: Model<string> | null = null;
 let currentGeneration: AbortController | null = null;
 let isStreaming = false;
 let lastVibeTime = 0;
 let workingMessageTheme: ThemeLike | null = null;
 let workingMessageColor: ColorValue | "rainbow" | undefined;
 
+// "auto" spec: follow the active session model exactly (same provider + model).
+function resolveAutoModelSpec(): (ParsedModelSpec & { model: Model<string> }) | null {
+  if (!extensionCtx || !activeModel) return null;
+  return { provider: activeModel.provider, modelId: activeModel.id, model: activeModel };
+}
+
 function resolveModelSpec(modelSpec: string): (ParsedModelSpec & { model: Model<string>; thinkingLevel?: VibeThinkingLevel }) | null {
+  if (modelSpec === "auto") return resolveAutoModelSpec();
   const parsed = parseModelSpec(modelSpec);
   if (!parsed || !extensionCtx) {
     return null;
@@ -566,7 +575,12 @@ export function setVibeWorkingMessageColor(color: ColorValue | "rainbow" | undef
 
 export function initVibeManager(ctx: ExtensionContext): void {
   extensionCtx = ctx;
+  activeModel = ctx.model ?? null;
   config = loadConfig(); // Refresh config in case settings changed
+}
+
+export function setVibeActiveModel(model: Model<string> | undefined): void {
+  activeModel = model ?? null;
 }
 
 export function getVibeTheme(): string | null {
@@ -720,9 +734,6 @@ export async function generateVibesBatch(
     return { success: false, count: 0, filePath, error: "Extension not initialized" };
   }
   
-  if (!parseModelSpec(config.modelSpec)) {
-    return { success: false, count: 0, filePath, error: "Invalid model spec" };
-  }
   const resolvedModel = resolveModelSpec(config.modelSpec);
   if (!resolvedModel) {
     return { success: false, count: 0, filePath, error: `Model not found: ${config.modelSpec}` };

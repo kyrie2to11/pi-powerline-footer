@@ -58,6 +58,7 @@ import {
   setVibeTheme,
   getVibeModel,
   setVibeModel,
+  setVibeActiveModel,
   getVibeMode,
   setVibeMode,
   hasVibeFile,
@@ -1987,8 +1988,9 @@ export default function powerlineFooter(pi: ExtensionAPI) {
     }
   });
 
-  pi.on("model_select", async (_event, ctx) => {
+  pi.on("model_select", async (event, ctx) => {
     currentCtx = ctx;
+    setVibeActiveModel(event.model);
     coreContextUsageCache.reset();
     requestStatusRender();
   });
@@ -2788,6 +2790,17 @@ export default function powerlineFooter(pi: ExtensionAPI) {
         const modelSpec = parts.slice(1).join(" ");
         if (!modelSpec) {
           ctx.ui.notify(`Current vibe model: ${getVibeModel()}`, "info");
+          return;
+        }
+        // "auto" follows the active session model
+        if (modelSpec.toLowerCase() === "auto") {
+          const persisted = setVibeModel("auto");
+          ctx.ui.notify(
+            persisted
+              ? "Vibe model set to: auto (follows active model)"
+              : "Vibe model set to: auto (not persisted; check settings.json)",
+            persisted ? "info" : "warning",
+          );
           return;
         }
         // Validate format (provider/modelId)

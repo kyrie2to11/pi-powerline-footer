@@ -105,22 +105,18 @@ interface VibeGenContext {
 
 let config: VibeConfig = loadConfig();
 let extensionCtx: ExtensionContext | null = null;
-// Active session model, pushed from model_select/session_start so "auto" resolves live.
-let activeModel: Model<string> | null = null;
 let currentGeneration: AbortController | null = null;
 let isStreaming = false;
 let lastVibeTime = 0;
 let workingMessageTheme: ThemeLike | null = null;
 let workingMessageColor: ColorValue | "rainbow" | undefined;
 
-// "auto" spec: follow the active session model exactly (same provider + model).
-function resolveAutoModelSpec(): (ParsedModelSpec & { model: Model<string> }) | null {
-  if (!extensionCtx || !activeModel) return null;
-  return { provider: activeModel.provider, modelId: activeModel.id, model: activeModel };
-}
-
 function resolveModelSpec(modelSpec: string): (ParsedModelSpec & { model: Model<string>; thinkingLevel?: VibeThinkingLevel }) | null {
-  if (modelSpec === "auto") return resolveAutoModelSpec();
+  if (modelSpec.toLowerCase() === "auto") {
+    // ctx.model is read at generation time so /model switches and provider refreshes apply.
+    const model = extensionCtx?.model;
+    return model ? { provider: model.provider, modelId: model.id, model } : null;
+  }
   const parsed = parseModelSpec(modelSpec);
   if (!parsed || !extensionCtx) {
     return null;
@@ -575,12 +571,7 @@ export function setVibeWorkingMessageColor(color: ColorValue | "rainbow" | undef
 
 export function initVibeManager(ctx: ExtensionContext): void {
   extensionCtx = ctx;
-  activeModel = ctx.model ?? null;
   config = loadConfig(); // Refresh config in case settings changed
-}
-
-export function setVibeActiveModel(model: Model<string> | undefined): void {
-  activeModel = model ?? null;
 }
 
 export function getVibeTheme(): string | null {

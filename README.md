@@ -408,6 +408,7 @@ Transform boring "Working..." messages into themed phrases that match your style
 /vibe off          → Disables (back to "Working...")
 /vibe model        → Shows current model
 /vibe model openai/gpt-4o-mini → Use a different model
+/vibe model auto   → Follow the session's active model
 /vibe mode         → Shows current mode (generate or file)
 /vibe mode file    → Switch to file-based mode (instant, no API calls)
 /vibe mode generate → Switch to on-demand generation (contextual)
@@ -423,7 +424,7 @@ In the agent settings file:
   "workingVibe": "star trek",                              // Theme phrase
   "powerline": { "workingVibes": { "color": "rainbow" } }, // Optional: Pi theme color, hex, or "rainbow"
   "workingVibeMode": "generate",                           // "generate" (on-demand) or "file" (pre-generated)
-  "workingVibeModel": "openai-codex/gpt-5.6-luna:low",     // Optional: model spec, or "auto" to follow the active session model (default)
+  "workingVibeModel": "openai-codex/gpt-5.6-luna:low",     // Optional: model to use (default); "auto" follows the session's active model
   "workingVibeFallback": "Working",                        // Optional: fallback message
   "workingVibeRefreshInterval": 30,                        // Optional: seconds between refreshes (default 30)
   "workingVibePrompt": "Generate a {theme} loading message for: {task}",  // Optional: custom prompt template

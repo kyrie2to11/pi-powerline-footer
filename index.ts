@@ -58,7 +58,6 @@ import {
   setVibeTheme,
   getVibeModel,
   setVibeModel,
-  setVibeActiveModel,
   getVibeMode,
   setVibeMode,
   hasVibeFile,
@@ -1988,9 +1987,8 @@ export default function powerlineFooter(pi: ExtensionAPI) {
     }
   });
 
-  pi.on("model_select", async (event, ctx) => {
+  pi.on("model_select", async (_event, ctx) => {
     currentCtx = ctx;
-    setVibeActiveModel(event.model);
     coreContextUsageCache.reset();
     requestStatusRender();
   });
